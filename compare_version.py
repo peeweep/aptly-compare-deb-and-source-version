@@ -3,9 +3,14 @@ import json
 import sys
 import requests
 import urllib
+from tomorrow import threads
 __DOMAIN_NAME__ = 'http://localhost:8080'
 __APTLY_REPO_NAME__ = "test-main-repo"
 __APTLY_API_URL__ = "{}/api".format(__DOMAIN_NAME__)
+
+
+def searchQuery(strQuery):
+    return urllib.parse.quote(strQuery)
 
 
 def getSourcePackageVersion(package_name):
@@ -15,7 +20,7 @@ def getSourcePackageVersion(package_name):
     r = requests.get("{}/repos/{}/packages?q={}"
                      .format(__APTLY_API_URL__,
                              __APTLY_REPO_NAME__,
-                             urllib.parse.quote(
+                             searchQuery(
                                  "$PackageType (= source), Name (= {})"
                                  .format(package_name))
                              )
@@ -39,7 +44,7 @@ def getBinaryPackageVersion(package_name):
     r = requests.get("{}/repos/{}/packages?q={}"
                      .format(__APTLY_API_URL__,
                              __APTLY_REPO_NAME__,
-                             urllib.parse.quote(
+                             searchQuery(
                                  "!$PackageType (= source), Source (= {})"
                                  .format(package_name))
                              )
@@ -57,10 +62,13 @@ def getBinaryPackageVersion(package_name):
     return binaryPackagesList
 
 
-def compareSourceBinaryVersion(sourcePackagesList, binaryPackagesList):
+@threads(1000)
+def compareSourceBinaryVersion(package_name):
     '''
     Compare Source And Binary version different
     '''
+    sourcePackagesList = getSourcePackageVersion(package_name)
+    binaryPackagesList = getBinaryPackageVersion(package_name)
     diffList = []
     for sourcePackage in sourcePackagesList:
         for binaryPackage in binaryPackagesList:
@@ -83,23 +91,20 @@ def getSourcePackagesList():
     r = requests.get("{}/repos/{}/packages?q={}"
                      .format(__APTLY_API_URL__,
                              __APTLY_REPO_NAME__,
-                             urllib.parse.quote(
+                             searchQuery(
                                  "$PackageType (= source)"))
                      ).text
     sourcePackagesList = []
     for i in json.loads(r):
         sourcePackagesList.append(i.split(' ')[1])
+    sourcePackagesList.sort()
     return sourcePackagesList
 
 
 def main():
-    sourcePackagesList = getSourcePackagesList()
-    for sourcePackage in sourcePackagesList:
-        sourcePackagesList = getSourcePackageVersion(
-            package_name=sourcePackage)
-        binaryPackagesList = getBinaryPackageVersion(
-            package_name=sourcePackage)
-        compareSourceBinaryVersion(sourcePackagesList, binaryPackagesList)
+    sourcePackagesLists = getSourcePackagesList()
+    for sourcePackage in sourcePackagesLists:
+        compareSourceBinaryVersion(sourcePackage)
 
 
 if __name__ == "__main__":
