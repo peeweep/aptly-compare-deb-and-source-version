@@ -52,9 +52,12 @@ def getBinaryPackageVersion(package_name):
     binaryPackages = json.loads(r)
     binaryPackagesList = []
     for i in range(len(binaryPackages)):
+        # binaryPackages[i]: Parm64 qemu-system-common 1:3.1+dfsg-8~deb10u1 a0cc268b9a9a880f
         version = binaryPackages[i].split(' ')[2]
         name = binaryPackages[i].split(' ')[1]
+        arch = binaryPackages[i].split(' ')[0]
         data = {
+            "binaryArch": arch,
             "binaryName": name,
             "binaryVersion": version
         }
@@ -77,6 +80,7 @@ def compareSourceBinaryVersion(package_name):
                     sourcePackage["sourceVersion"]):
                 data = {"sourceName":  sourcePackage["sourceName"],
                         "sourceVersion": sourcePackage["sourceVersion"],
+                        "binaryArch": binaryPackage["binaryArch"],
                         "binaryName": binaryPackage["binaryName"],
                         "binaryVersion": binaryPackage["binaryVersion"]}
                 diffList.append(data)
