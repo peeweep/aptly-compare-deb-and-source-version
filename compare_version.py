@@ -3,10 +3,12 @@ import json
 import sys
 import requests
 import urllib
+import csv
 from tomorrow import threads
 __DOMAIN_NAME__ = 'http://localhost:8080'
 __APTLY_REPO_NAME__ = "test-main-repo"
 __APTLY_API_URL__ = "{}/api".format(__DOMAIN_NAME__)
+result_csv_file = "result.csv"
 
 
 def searchQuery(strQuery):
@@ -76,13 +78,23 @@ def compareSourceBinaryVersion(package_name):
     for sourcePackage in sourcePackagesList:
         for binaryPackage in binaryPackagesList:
             # When version is different, append to diffList
-            if (binaryPackage["binaryVersion"] !=
-                    sourcePackage["sourceVersion"]):
+            if (binaryPackage["binaryVersion"] != sourcePackage["sourceVersion"]):
                 data = {"sourceName":  sourcePackage["sourceName"],
                         "sourceVersion": sourcePackage["sourceVersion"],
                         "binaryArch": binaryPackage["binaryArch"],
                         "binaryName": binaryPackage["binaryName"],
                         "binaryVersion": binaryPackage["binaryVersion"]}
+                f = open(result_csv_file, "a+")
+                writer = csv.writer(f)
+                writer.writerow(
+                    [sourcePackage["sourceName"],
+                     sourcePackage["sourceVersion"],
+                     binaryPackage["binaryArch"],
+                     binaryPackage["binaryName"],
+                     binaryPackage["binaryVersion"]
+                     ])
+                f.close()
+
                 diffList.append(data)
     for diff in diffList:
         print(diff)
@@ -107,6 +119,12 @@ def getSourcePackagesList():
 
 def main():
     sourcePackagesLists = getSourcePackagesList()
+
+    with open(result_csv_file, "w") as result_csv:
+        writer = csv.writer(result_csv)
+        writer.writerow(["sourceName", "sourceVersion",
+                        "binaryArch", "binaryName", "binaryVersion"])
+    result_csv.close()
     for sourcePackage in sourcePackagesLists:
         compareSourceBinaryVersion(sourcePackage)
 
